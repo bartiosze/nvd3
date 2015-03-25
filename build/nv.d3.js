@@ -1,4 +1,4 @@
-/* nvd3 version 1.7.1(https://github.com/novus/nvd3) 2015-02-08 */
+/* nvd3 version 1.7.1(https://github.com/novus/nvd3) 2015-03-25 */
 (function(){
 
 // set up main nv object on window
@@ -5772,6 +5772,7 @@ nv.models.lineWithFocusChart = function() {
         , y2Axis = nv.models.axis()
         , legend = nv.models.legend()
         , brush = d3.svg.brush()
+        , interactiveLayer = nv.interactiveGuideline()
         ;
 
     var margin = {top: 30, right: 30, bottom: 30, left: 60}
@@ -5786,7 +5787,8 @@ nv.models.lineWithFocusChart = function() {
         , y2
         , showLegend = true
         , brushExtent = null
-        , tooltips = true
+        , tooltips = false
+        , useInteractiveGuideline = true
         , tooltip = function(key, x, y, e, graph) {
             return '<h3>' + key + '</h3>' +
                 '<p>' +  y + ' at ' + x + '</p>'
@@ -5914,7 +5916,8 @@ nv.models.lineWithFocusChart = function() {
             var g = wrap.select('g');
 
             gEnter.append('g').attr('class', 'nv-legendWrap');
-
+            gEnter.append('g').attr('class', 'nv-interactive');
+          
             var focusEnter = gEnter.append('g').attr('class', 'nv-focus');
             focusEnter.append('g').attr('class', 'nv-x nv-axis');
             focusEnter.append('g').attr('class', 'nv-y nv-axis');
@@ -5947,6 +5950,18 @@ nv.models.lineWithFocusChart = function() {
 
             wrap.attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
+            // setup interactive layer
+            if(useInteractiveGuideline) {
+              interactiveLayer
+                .width(availableWidth)
+                .height(availableHeight1)
+                .margin({left:margin.left, top:margin.top})
+                .svgContainer(container)
+                .xScale(x);
+              wrap.select(".nv-interactive").call(interactiveLayer);
+            };
+
+          
             // Main Chart Component(s)
             lines
                 .width(availableWidth)
@@ -6062,7 +6077,85 @@ nv.models.lineWithFocusChart = function() {
             //============================================================
             // Event Handling/Dispatching (in chart's scope)
             //------------------------------------------------------------
-
+            interactiveLayer.dispatch.on('elementMousemove', function(e) {
+              lines.clearHighlights();
+              var singlePoint, pointIndex, pointXLocation, allData = [];
+              data
+                .filter(function(series, i) {
+                  series.seriesIndex = i;
+                  return !series.disabled;
+                })
+                .forEach(function(series,i) {
+                  pointIndex = nv.interactiveBisect(series.values, e.pointXValue, lines.x());
+                  lines.highlightPoint(i, pointIndex, true);
+                  var point = series.values[pointIndex];
+                  if (point === undefined) return;
+                  if (singlePoint === undefined) singlePoint = point;
+                  if (pointXLocation === undefined)
+                    pointXLocation = lines.xScale(lines.x(point,pointIndex));
+                  allData.push({
+                    key: series.key,
+                    value: lines.y(point, pointIndex),
+                    color: color(series,series.seriesIndex)
+                  });
+                });
+              //Highlight the tooltip entry based on which point the mouse is closest to.
+              if (allData.length > 2) {
+                var yValue = lines.yScale().invert(e.mouseY);
+                var domainExtent = Math.abs(y.domain()[0] - y.domain()[1]);
+                var threshold = 0.03 * domainExtent;
+                var indexToHighlight = nv.nearestValueIndex(allData.map(function(d){return d.value}),yValue,threshold);
+                if (indexToHighlight !== null)
+                  allData[indexToHighlight].highlight = true;
+              }
+              
+              var xValue = xAxis.tickFormat()(lines.x(singlePoint,pointIndex));
+              interactiveLayer.tooltip
+                .position({left: e.mouseX + margin.left, top: e.mouseY + margin.top})
+                .chartContainer(that.parentNode)
+                .valueFormatter(function(d,i) {
+                  return yAxis.tickFormat()(d);
+                })
+                .data({
+                  value: xValue,
+                  series: allData
+                })();
+              
+              interactiveLayer.renderGuideLine(pointXLocation);
+              
+            });
+          
+            interactiveLayer.dispatch.on('elementClick', function(e) {
+              console.log('element click');
+              
+              var pointXLocation, allData = [];
+              
+              data.filter(function(series, i) {
+                series.seriesIndex = i;
+                return !series.disabled;
+              }).forEach(function(series) {
+                var pointIndex = nv.interactiveBisect(series.values, e.pointXValue, lines.x());
+                var point = series.values[pointIndex];
+                if (typeof point === 'undefined') return;
+                if (typeof pointXLocation === 'undefined') pointXLocation = chart.xScale()(chart.x()(point,pointIndex));
+                var yPos = lines.yScale()(lines.y()(point,pointIndex));
+                allData.push({
+                  point: point,
+                  pointIndex: pointIndex,
+                  pos: [pointXLocation, yPos],
+                  seriesIndex: series.seriesIndex,
+                  series: series
+                });
+              });
+              
+              lines.dispatch.elementClick(allData);
+            });
+          
+            interactiveLayer.dispatch.on("elementMouseout",function(e) {
+              console.log('mouseout');
+              lines.clearHighlights();
+            });
+            
             legend.dispatch.on('stateChange', function(newState) {
                 for (var key in newState)
                     state[key] = newState[key];
