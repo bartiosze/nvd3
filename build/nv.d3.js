@@ -1,4 +1,4 @@
-/* nvd3 version 1.7.1(https://github.com/novus/nvd3) 2015-03-25 */
+/* nvd3 version 1.7.1(https://github.com/novus/nvd3) 2015-03-27 */
 (function(){
 
 // set up main nv object on window
@@ -6092,17 +6092,17 @@ nv.models.lineWithFocusChart = function() {
                   if (point === undefined) return;
                   if (singlePoint === undefined) singlePoint = point;
                   if (pointXLocation === undefined)
-                    pointXLocation = lines.xScale(lines.x(point,pointIndex));
+                    pointXLocation = chart.xAxis.scale(lines.x(point,pointIndex));
                   allData.push({
                     key: series.key,
-                    value: lines.y(point, pointIndex),
-                    color: color(series,series.seriesIndex)
+                    value: lines.y()(point, pointIndex),
+                    color: lines.color()(series,series.seriesIndex)
                   });
                 });
               //Highlight the tooltip entry based on which point the mouse is closest to.
               if (allData.length > 2) {
-                var yValue = lines.yScale().invert(e.mouseY);
-                var domainExtent = Math.abs(y.domain()[0] - y.domain()[1]);
+                var yValue = chart.yAxis.scale().invert(e.mouseY);
+                var domainExtent = Math.abs(chart.yAxis.domain()[0] - chart.yAxis.domain()[1]);
                 var threshold = 0.03 * domainExtent;
                 var indexToHighlight = nv.nearestValueIndex(allData.map(function(d){return d.value}),yValue,threshold);
                 if (indexToHighlight !== null)
@@ -6125,34 +6125,34 @@ nv.models.lineWithFocusChart = function() {
               
             });
           
-            interactiveLayer.dispatch.on('elementClick', function(e) {
-              console.log('element click');
+            // interactiveLayer.dispatch.on('elementClick', function(e) {
+            //   console.log('element click');
               
-              var pointXLocation, allData = [];
+            //   var pointXLocation, allData = [];
               
-              data.filter(function(series, i) {
-                series.seriesIndex = i;
-                return !series.disabled;
-              }).forEach(function(series) {
-                var pointIndex = nv.interactiveBisect(series.values, e.pointXValue, lines.x());
-                var point = series.values[pointIndex];
-                if (typeof point === 'undefined') return;
-                if (typeof pointXLocation === 'undefined') pointXLocation = chart.xScale()(chart.x()(point,pointIndex));
-                var yPos = lines.yScale()(lines.y()(point,pointIndex));
-                allData.push({
-                  point: point,
-                  pointIndex: pointIndex,
-                  pos: [pointXLocation, yPos],
-                  seriesIndex: series.seriesIndex,
-                  series: series
-                });
-              });
+            //   data.filter(function(series, i) {
+            //     series.seriesIndex = i;
+            //     return !series.disabled;
+            //   }).forEach(function(series) {
+            //     var pointIndex = nv.interactiveBisect(series.values, e.pointXValue, lines.x());
+            //     var point = series.values[pointIndex];
+            //     if (typeof point === 'undefined') return;
+            //     if (typeof pointXLocation === 'undefined') pointXLocation = chart.xAxis.scale()(lines.x()(point,pointIndex));
+            //     var yPos = chart.yAxis.scale()(lines.y()(point,pointIndex));
+            //     allData.push({
+            //       point: point,
+            //       pointIndex: pointIndex,
+            //       pos: [pointXLocation, yPos],
+            //       seriesIndex: series.seriesIndex,
+            //       series: series
+            //     });
+            //   });
               
-              lines.dispatch.elementClick(allData);
-            });
+            //   lines.dispatch.elementClick(allData);
+            // });
           
-            interactiveLayer.dispatch.on("elementMouseout",function(e) {
-              console.log('mouseout');
+          interactiveLayer.dispatch.on("elementMouseout",function(e) {
+            
               lines.clearHighlights();
             });
             
