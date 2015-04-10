@@ -6092,7 +6092,7 @@ nv.models.lineWithFocusChart = function() {
                   if (point === undefined) return;
                   if (singlePoint === undefined) singlePoint = point;
                   if (pointXLocation === undefined)
-                    pointXLocation = chart.xAxis.scale(lines.x(point,pointIndex));
+                    pointXLocation = chart.xAxis.scale(lines.x()(point,pointIndex));
                   allData.push({
                     key: series.key,
                     value: lines.y()(point, pointIndex),
@@ -6109,7 +6109,7 @@ nv.models.lineWithFocusChart = function() {
                   allData[indexToHighlight].highlight = true;
               }
               
-              var xValue = xAxis.tickFormat()(lines.x(singlePoint,pointIndex));
+              var xValue = xAxis.tickFormat()(lines.x()(singlePoint,pointIndex));
               interactiveLayer.tooltip
                 .position({left: e.mouseX + margin.left, top: e.mouseY + margin.top})
                 .chartContainer(that.parentNode)
@@ -6152,9 +6152,9 @@ nv.models.lineWithFocusChart = function() {
             // });
           
           interactiveLayer.dispatch.on("elementMouseout",function(e) {
-            
-              lines.clearHighlights();
-            });
+            nv.tooltip.cleanup();
+            lines.clearHighlights();
+          });
             
             legend.dispatch.on('stateChange', function(newState) {
                 for (var key in newState)
