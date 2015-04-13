@@ -6338,6 +6338,13 @@ nv.models.lineWithFocusChart = function() {
         y: {get: function(){return lines.y();}, set: function(_){
             lines.y(_);
             lines2.y(_);
+        }},
+        useInteractiveGuideline: {get: function(){return useInteractiveGuideline;}, set: function(_){
+            useInteractiveGuideline = !!_;
+            if (_) {
+                chart.interactive(false);
+                chart.useVoronoi(false);
+            }
         }}
     });
 
